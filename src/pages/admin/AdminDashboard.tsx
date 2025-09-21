@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Search, Filter, Download, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Download,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+} from 'lucide-react';
 import { ApplicationTable } from '../../components/ApplicationTable';
 import { ExportPDF } from '../../utils/exportPDF';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
 
 type Application = {
   id: string;
@@ -34,11 +55,13 @@ export const AdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [branchFilter, setBranchFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
+  const [showCharts, setShowCharts] = useState(false);
+
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
     approved: 0,
-    rejected: 0
+    rejected: 0,
   });
 
   useEffect(() => {
@@ -60,9 +83,9 @@ export const AdminDashboard: React.FC = () => {
       setApplications(data);
       setStats({
         total: data.length,
-        pending: data.filter(app => app.status === 'pending').length,
-        approved: data.filter(app => app.status === 'approved').length,
-        rejected: data.filter(app => app.status === 'rejected').length
+        pending: data.filter((app) => app.status === 'pending').length,
+        approved: data.filter((app) => app.status === 'approved').length,
+        rejected: data.filter((app) => app.status === 'rejected').length,
       });
     }
     setLoading(false);
@@ -72,24 +95,25 @@ export const AdminDashboard: React.FC = () => {
     let filtered = applications;
 
     if (searchTerm) {
-      filtered = filtered.filter(app =>
-        app.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.concession_form_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.from_station.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.to_station.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (app) =>
+          app.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.concession_form_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.from_station.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.to_station.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter);
+      filtered = filtered.filter((app) => app.status === statusFilter);
     }
 
     if (branchFilter !== 'all') {
-      filtered = filtered.filter(app => app.branch === branchFilter);
+      filtered = filtered.filter((app) => app.branch === branchFilter);
     }
 
     if (yearFilter !== 'all') {
-      filtered = filtered.filter(app => app.year === yearFilter);
+      filtered = filtered.filter((app) => app.year === yearFilter);
     }
 
     setFilteredApplications(filtered);
@@ -107,13 +131,20 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const exportApprovedApplications = () => {
-    const approvedApps = applications.filter(app => app.status === 'approved');
+    const approvedApps = applications.filter((app) => app.status === 'approved');
     ExportPDF(approvedApps);
   };
 
-  const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number; color: string }> = 
-    ({ icon, title, value, color }) => (
-    <div className="bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderColor: color }}>
+  const StatCard: React.FC<{
+    icon: React.ReactNode;
+    title: string;
+    value: number;
+    color: string;
+  }> = ({ icon, title, value, color }) => (
+    <div
+      className="bg-white rounded-xl shadow-md p-6 border-l-4"
+      style={{ borderColor: color }}
+    >
       <div className="flex items-center">
         <div className="flex-shrink-0" style={{ color }}>
           {icon}
@@ -124,6 +155,22 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+
+  // Chart Data
+  const pieData = [
+    { name: 'Pending', value: stats.pending },
+    { name: 'Approved', value: stats.approved },
+    { name: 'Rejected', value: stats.rejected },
+  ];
+  const COLORS = ['#F59E0B', '#10B981', '#EF4444'];
+
+  const branchData = Object.values(
+    applications.reduce((acc, app) => {
+      acc[app.branch] = acc[app.branch] || { branch: app.branch, count: 0 };
+      acc[app.branch].count += 1;
+      return acc;
+    }, {} as Record<string, { branch: string; count: number }>)
   );
 
   if (loading) {
@@ -173,7 +220,9 @@ export const AdminDashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -187,7 +236,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -201,7 +252,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Branch
+            </label>
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
@@ -218,7 +271,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Year
+            </label>
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
@@ -233,7 +288,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Export</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Export
+            </label>
             <button
               onClick={exportApprovedApplications}
               className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -244,6 +301,65 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Toggle Charts Button */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowCharts(!showCharts)}
+          className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          {showCharts ? 'Hide Charts' : 'Show Charts'}
+        </button>
+      </div>
+
+      {/* Charts Section */}
+      {showCharts && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Pie Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              Application Status Distribution
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={100}
+                  dataKey="value"
+                  label
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Bar Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-lg font-semibold mb-4">Applications by Branch</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={branchData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="branch" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Applications Table */}
       <ApplicationTable
