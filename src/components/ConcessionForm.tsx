@@ -27,6 +27,8 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
     seasonTicketNo: ''
   });
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
+  const [aadharFile, setAadharFile] = useState<File | null>(null);
+  const [feeReceiptFile, setFeeReceiptFile] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -42,20 +44,49 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
       const age = today.getFullYear() - birthDate.getFullYear();
       setFormData(prev => ({ ...prev, age: age.toString() }));
     }
-  };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setIdCardFile(e.target.files[0]);
+    // Auto-calculate previous pass expiry date from previous pass issue date
+    if (name === 'previousPassDate') {
+      if (value) {
+        const issueDate = new Date(value);
+        const expiryDate = new Date(issueDate);
+        expiryDate.setDate(expiryDate.getDate() + 30); // Add 30 days (configurable)
+        setFormData(prev => ({ 
+          ...prev, 
+          previousPassExpiry: expiryDate.toISOString().split('T')[0] 
+        }));
+      } else {
+        // Clear expiry date if issue date is cleared
+        setFormData(prev => ({ 
+          ...prev, 
+          previousPassExpiry: '' 
+        }));
+      }
     }
   };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'id-card' | 'aadhar' | 'fee-receipt') => {
+    if (e.target.files && e.target.files[0]) {
+      switch (fileType) {
+        case 'id-card':
+          setIdCardFile(e.target.files[0]);
+          break;
+        case 'aadhar':
+          setAadharFile(e.target.files[0]);
+          break;
+        case 'fee-receipt':
+          setFeeReceiptFile(e.target.files[0]);
+          break;
+      }
+    }
+  };
+
+  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user?.id}_${Date.now()}.${fileExt}`;
     
     const { error } = await supabase.storage
-      .from('id-cards')
+      .from(bucket)
       .upload(fileName, file);
 
     if (error) {
@@ -64,7 +95,7 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
     }
 
     const { data } = supabase.storage
-      .from('id-cards')
+      .from(bucket)
       .getPublicUrl(fileName);
 
     return data.publicUrl;
@@ -78,8 +109,17 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
 
     try {
       let idCardUrl = null;
+      let aadharUrl = null;
+      let feeReceiptUrl = null;
+      
       if (idCardFile) {
-        idCardUrl = await uploadFile(idCardFile);
+        idCardUrl = await uploadFile(idCardFile, 'id-cards');
+      }
+      if (aadharFile) {
+        aadharUrl = await uploadFile(aadharFile, 'aadhar-cards');
+      }
+      if (feeReceiptFile) {
+        feeReceiptUrl = await uploadFile(feeReceiptFile, 'fee-receipts');
       }
 
       const { error } = await supabase
@@ -102,6 +142,8 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
           previous_pass_expiry: formData.previousPassExpiry,
           season_ticket_no: formData.seasonTicketNo,
           id_card_url: idCardUrl,
+          aadhar_url: aadharUrl,
+          fee_receipt_url: feeReceiptUrl,
           status: 'pending'
         }]);
 
@@ -125,6 +167,8 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
         seasonTicketNo: ''
       });
       setIdCardFile(null);
+      setAadharFile(null);
+      setFeeReceiptFile(null);
       
       onSuccess();
       alert('Application submitted successfully!');
@@ -367,13 +411,20 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Previous Pass Expiry Date
+              {formData.previousPassDate && (
+                <span className="text-xs text-blue-600 ml-1">(Auto-calculated)</span>
+              )}
             </label>
             <input
               type="date"
               name="previousPassExpiry"
               value={formData.previousPassExpiry}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              readOnly={!!formData.previousPassDate}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formData.previousPassDate ? 'bg-blue-50 cursor-not-allowed' : ''
+              }`}
+              placeholder={formData.previousPassDate ? 'Auto-calculated' : ''}
             />
           </div>
 
@@ -392,38 +443,116 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
           </div>
         </div>
 
-        {/* File Upload */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            College ID Card Copy <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-            <div className="space-y-1 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <div className="flex text-sm text-gray-600">
-                <label
-                  htmlFor="id-card"
-                  className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
-                >
-                  <span>Upload a file</span>
-                  <input
-                    id="id-card"
-                    name="id-card"
-                    type="file"
-                    accept="image/*,.pdf"
-                    required
-                    onChange={handleFileChange}
-                    className="sr-only"
-                  />
-                </label>
-                <p className="pl-1">or drag and drop</p>
+        {/* Document Uploads */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+            Document Uploads
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* College ID Card Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                College ID Card <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="id-card"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
+                    >
+                      <span>Upload</span>
+                      <input
+                        id="id-card"
+                        name="id-card"
+                        type="file"
+                        accept="image/*,.pdf"
+                        required
+                        onChange={(e) => handleFileChange(e, 'id-card')}
+                        className="sr-only"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF</p>
+                  {idCardFile && (
+                    <p className="text-sm text-green-600 mt-2 break-words">
+                      ✓ {idCardFile.name}
+                    </p>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-              {idCardFile && (
-                <p className="text-sm text-green-600 mt-2">
-                  Selected: {idCardFile.name}
-                </p>
-              )}
+            </div>
+
+            {/* Aadhar Card Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Aadhar Card <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="aadhar"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
+                    >
+                      <span>Upload</span>
+                      <input
+                        id="aadhar"
+                        name="aadhar"
+                        type="file"
+                        accept="image/*,.pdf"
+                        required
+                        onChange={(e) => handleFileChange(e, 'aadhar')}
+                        className="sr-only"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF</p>
+                  {aadharFile && (
+                    <p className="text-sm text-green-600 mt-2 break-words">
+                      ✓ {aadharFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Fee Receipt Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fee Receipt <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="fee-receipt"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
+                    >
+                      <span>Upload</span>
+                      <input
+                        id="fee-receipt"
+                        name="fee-receipt"
+                        type="file"
+                        accept="image/*,.pdf"
+                        required
+                        onChange={(e) => handleFileChange(e, 'fee-receipt')}
+                        className="sr-only"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF</p>
+                  {feeReceiptFile && (
+                    <p className="text-sm text-green-600 mt-2 break-words">
+                      ✓ {feeReceiptFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

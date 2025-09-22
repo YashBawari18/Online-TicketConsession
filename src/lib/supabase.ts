@@ -78,6 +78,8 @@ export type Database = {
           previous_pass_expiry: string;
           season_ticket_no: string;
           id_card_url: string | null;
+          aadhar_url: string | null;
+          fee_receipt_url: string | null;
           status: string;
           created_at: string;
           updated_at: string;
@@ -101,6 +103,8 @@ export type Database = {
           previous_pass_expiry: string;
           season_ticket_no: string;
           id_card_url?: string | null;
+          aadhar_url?: string | null;
+          fee_receipt_url?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;
@@ -124,6 +128,8 @@ export type Database = {
           previous_pass_expiry?: string;
           season_ticket_no?: string;
           id_card_url?: string | null;
+          aadhar_url?: string | null;
+          fee_receipt_url?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;

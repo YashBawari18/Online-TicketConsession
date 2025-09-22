@@ -8,8 +8,12 @@ import {
   XCircle,
   Clock,
   FileText,
+  Eye,
+  LayoutDashboard,
+  BarChart as BarChartIcon,
 } from 'lucide-react';
 import { ApplicationTable } from '../../components/ApplicationTable';
+import { ViewDocs } from '../../components/ViewDocs';
 import { ExportPDF } from '../../utils/exportPDF';
 import {
   PieChart,
@@ -56,6 +60,7 @@ export const AdminDashboard: React.FC = () => {
   const [branchFilter, setBranchFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [showCharts, setShowCharts] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'view-docs' | 'analytics'>('dashboard');
 
   const [stats, setStats] = useState({
     total: 0,
@@ -119,10 +124,18 @@ export const AdminDashboard: React.FC = () => {
     setFilteredApplications(filtered);
   };
 
-  const updateApplicationStatus = async (id: string, status: 'approved' | 'rejected') => {
+  const updateApplicationStatus = async (id: string, status: 'approved' | 'rejected', passData?: { issueDate: string; expiryDate: string }) => {
+    const updateData: any = { status, updated_at: new Date().toISOString() };
+    
+    // Add pass dates if provided (when approving)
+    if (passData) {
+      updateData.previous_pass_date = passData.issueDate;
+      updateData.previous_pass_expiry = passData.expiryDate;
+    }
+    
     const { error } = await supabase
       .from('concession_applications')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id);
 
     if (!error) {
@@ -188,184 +201,269 @@ export const AdminDashboard: React.FC = () => {
         <p className="text-gray-600">Manage student concession applications</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          icon={<FileText className="h-8 w-8" />}
-          title="Total Applications"
-          value={stats.total}
-          color="#3B82F6"
-        />
-        <StatCard
-          icon={<Clock className="h-8 w-8" />}
-          title="Pending"
-          value={stats.pending}
-          color="#F59E0B"
-        />
-        <StatCard
-          icon={<CheckCircle className="h-8 w-8" />}
-          title="Approved"
-          value={stats.approved}
-          color="#10B981"
-        />
-        <StatCard
-          icon={<XCircle className="h-8 w-8" />}
-          title="Rejected"
-          value={stats.rejected}
-          color="#EF4444"
-        />
+      {/* Tab Navigation */}
+      <div className="mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { id: 'view-docs', label: 'View Documents', icon: Eye },
+              { id: 'analytics', label: 'Analytics', icon: BarChartIcon }
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id as any)}
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, form no..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+      {/* Dashboard Content */}
+      {activeTab === 'dashboard' && (
+        <div className="space-y-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              icon={<FileText className="h-8 w-8" />}
+              title="Total Applications"
+              value={stats.total}
+              color="#3B82F6"
+            />
+            <StatCard
+              icon={<Clock className="h-8 w-8" />}
+              title="Pending"
+              value={stats.pending}
+              color="#F59E0B"
+            />
+            <StatCard
+              icon={<CheckCircle className="h-8 w-8" />}
+              title="Approved"
+              value={stats.approved}
+              color="#10B981"
+            />
+            <StatCard
+              icon={<XCircle className="h-8 w-8" />}
+              title="Rejected"
+              value={stats.rejected}
+              color="#EF4444"
+            />
+          </div>
+
+          {/* Filters and Search */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, form no..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Branch
+                </label>
+                <select
+                  value={branchFilter}
+                  onChange={(e) => setBranchFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Branches</option>
+                  <option value="Civil">Civil</option>
+                  <option value="Computer">Computer</option>
+                  <option value="Chemical">Chemical</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="IT">IT</option>
+                  <option value="Mechanical">Mechanical</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Year
+                </label>
+                <select
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Years</option>
+                  <option value="FE">FE</option>
+                  <option value="SE">SE</option>
+                  <option value="TE">TE</option>
+                  <option value="BE">BE</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Export
+                </label>
+                <button
+                  onClick={exportApprovedApplications}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </button>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Branch
-            </label>
-            <select
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Branches</option>
-              <option value="Civil">Civil</option>
-              <option value="Computer">Computer</option>
-              <option value="Chemical">Chemical</option>
-              <option value="Electronics">Electronics</option>
-              <option value="IT">IT</option>
-              <option value="Mechanical">Mechanical</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Year
-            </label>
-            <select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Years</option>
-              <option value="FE">FE</option>
-              <option value="SE">SE</option>
-              <option value="TE">TE</option>
-              <option value="BE">BE</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Export
-            </label>
+          {/* Toggle Charts Button */}
+          <div className="mb-6">
             <button
-              onClick={exportApprovedApplications}
-              className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              onClick={() => setShowCharts(!showCharts)}
+              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {showCharts ? 'Hide Charts' : 'Show Charts'}
             </button>
           </div>
+
+          {/* Charts Section */}
+          {showCharts && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* Pie Chart */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold mb-4">
+                  Application Status Distribution
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      dataKey="value"
+                      label
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Bar Chart */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold mb-4">Applications by Branch</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={branchData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="branch" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#3B82F6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Applications Table */}
+          <ApplicationTable
+            applications={filteredApplications}
+            onUpdateStatus={updateApplicationStatus}
+          />
         </div>
-      </div>
+      )}
+      
+      {/* View Documents Content */}
+      {activeTab === 'view-docs' && <ViewDocs />}
+      
+      {/* Analytics Content */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Pie Chart */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                Application Status Distribution
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    dataKey="value"
+                    label
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-      {/* Toggle Charts Button */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowCharts(!showCharts)}
-          className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          {showCharts ? 'Hide Charts' : 'Show Charts'}
-        </button>
-      </div>
-
-      {/* Charts Section */}
-      {showCharts && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Pie Chart */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Application Status Distribution
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  dataKey="value"
-                  label
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Bar Chart */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4">Applications by Branch</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={branchData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="branch" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
+            {/* Bar Chart */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-lg font-semibold mb-4">Applications by Branch</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={branchData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="branch" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Applications Table */}
-      <ApplicationTable
-        applications={filteredApplications}
-        onUpdateStatus={updateApplicationStatus}
-      />
     </div>
   );
 };
