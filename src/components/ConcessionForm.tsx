@@ -46,23 +46,31 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
     }
 
     // Auto-calculate previous pass expiry date from previous pass issue date
-    if (name === 'previousPassDate') {
-      if (value) {
-        const issueDate = new Date(value);
-        const expiryDate = new Date(issueDate);
-        expiryDate.setDate(expiryDate.getDate() + 30); // Add 30 days (configurable)
-        setFormData(prev => ({ 
-          ...prev, 
-          previousPassExpiry: expiryDate.toISOString().split('T')[0] 
-        }));
-      } else {
-        // Clear expiry date if issue date is cleared
-        setFormData(prev => ({ 
-          ...prev, 
-          previousPassExpiry: '' 
-        }));
-      }
+ // Auto-calculate previous pass expiry date from previous pass issue date
+if (name === 'previousPassDate') {
+  if (value) {
+    const issueDate = new Date(value);
+    const expiryDate = new Date(issueDate);
+
+    if (formData.passType === 'Monthly') {
+      expiryDate.setDate(expiryDate.getDate() + 30); // Add 30 days
+    } else if (formData.passType === 'Quarterly') {
+      expiryDate.setMonth(expiryDate.getMonth() + 3); // Add 3 months
     }
+
+    setFormData(prev => ({
+      ...prev,
+      previousPassExpiry: expiryDate.toISOString().split('T')[0]
+    }));
+  } else {
+    // Clear expiry date if issue date is cleared
+    setFormData(prev => ({
+      ...prev,
+      previousPassExpiry: ''
+    }));
+  }
+}
+
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'id-card' | 'aadhar' | 'fee-receipt') => {
