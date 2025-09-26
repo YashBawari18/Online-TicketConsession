@@ -30,48 +30,60 @@ export const ConcessionForm: React.FC<ConcessionFormProps> = ({ onSuccess }) => 
   const [aadharFile, setAadharFile] = useState<File | null>(null);
   const [feeReceiptFile, setFeeReceiptFile] = useState<File | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
 
-    // Auto-calculate age from date of birth
-    if (name === 'dateOfBirth' && value) {
-      const birthDate = new Date(value);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      setFormData(prev => ({ ...prev, age: age.toString() }));
-    }
-
-    // Auto-calculate previous pass expiry date from previous pass issue date
- // Auto-calculate previous pass expiry date from previous pass issue date
-if (name === 'previousPassDate') {
-  if (value) {
-    const issueDate = new Date(value);
-    const expiryDate = new Date(issueDate);
-
-    if (formData.passType === 'Monthly') {
-      expiryDate.setDate(expiryDate.getDate() + 30); // Add 30 days
-    } else if (formData.passType === 'Quarterly') {
-      expiryDate.setMonth(expiryDate.getMonth() + 3); // Add 3 months
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      previousPassExpiry: expiryDate.toISOString().split('T')[0]
-    }));
-  } else {
-    // Clear expiry date if issue date is cleared
-    setFormData(prev => ({
-      ...prev,
-      previousPassExpiry: ''
-    }));
+  // Auto-calculate age from DOB
+  if (name === "dateOfBirth" && value) {
+    const birthDate = new Date(value);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    setFormData((prev) => ({ ...prev, [name]: value, age: age.toString() }));
+    return;
   }
-}
 
-  };
+  // Handle Previous Pass Date + Pass Type logic
+  if (name === "previousPassDate" || name === "passType") {
+    const issueDate = new Date(
+      name === "previousPassDate" ? value : formData.previousPassDate
+    );
+
+    const currentPassType = name === "passType" ? value : formData.passType;
+
+    if (!isNaN(issueDate.getTime()) && currentPassType) {
+      const expiryDate = new Date(issueDate);
+
+      if (currentPassType === "Monthly") {
+        expiryDate.setDate(expiryDate.getDate() + 30);
+      } else if (currentPassType === "Quarterly") {
+        expiryDate.setMonth(expiryDate.getMonth() + 3);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        previousPassExpiry: expiryDate.toISOString().split("T")[0],
+      }));
+      return;
+    } else if (name === "previousPassDate" && !value) {
+      // If issue date cleared → also clear expiry
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        previousPassExpiry: "",
+      }));
+      return;
+    }
+  }
+
+  // Default handler for other inputs
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
+
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'id-card' | 'aadhar' | 'fee-receipt') => {
     if (e.target.files && e.target.files[0]) {
