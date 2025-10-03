@@ -1,15 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Train, Users, UserCheck } from 'lucide-react';
+import dmceImage from '../dmce.jpeg';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800">
+        <div
+      className="min-h-screen bg-cover bg-center"
+      style={{ backgroundImage: `url(${dmceImage})` }}
+    >
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12" style={{opacity: 0.9}}>
             <div className="flex justify-center mb-8">
               <Train className="h-16 w-16 text-blue-600" />
             </div>
@@ -32,6 +36,7 @@ export const HomePage: React.FC = () => {
               <button
                 onClick={() => navigate('/student/login')}
                 className="group bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                style={{opacity: 1}}
               >
                 <Users className="h-12 w-12 mx-auto mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-semibold mb-2">Student Portal</h3>
@@ -40,7 +45,7 @@ export const HomePage: React.FC = () => {
               
               <button
                 onClick={() => navigate('/admin/login')}
-                className="group bg-gray-800 hover:bg-gray-900 text-white p-8 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group bg-gray-800 hover:bg-gray-900 text-white p-8 rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 opacity-1.2"
               >
                 <UserCheck className="h-12 w-12 mx-auto mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-semibold mb-2">Admin Portal</h3>
