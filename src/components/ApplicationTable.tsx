@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, Eye, Clock, Calendar, MapPin, User, FileText } from 'lucide-react';
-import { DocumentViewer } from './DocumentViewer';
+import React, { useState } from "react";
+import {
+  CheckCircle,
+  XCircle,
+  Eye,
+  Clock,
+  Calendar,
+  MapPin,
+  User,
+  FileText,
+} from "lucide-react";
+import { DocumentViewer } from "./DocumentViewer";
 
 type Application = {
   id: string;
@@ -25,18 +34,26 @@ type Application = {
   status: string;
   created_at: string;
   updated_at: string;
+  valid_from?: string; // NEW
+  valid_until?: string; // NEW
+  is_expired?: boolean; // NEW
 };
 
 type ApplicationTableProps = {
   applications: Application[];
-  onUpdateStatus: (id: string, status: 'approved' | 'rejected', passData?: { issueDate: string; expiryDate: string }) => void;
+  onUpdateStatus: (
+    id: string,
+    status: "approved" | "rejected",
+    passData?: { issueDate: string; expiryDate: string }
+  ) => void;
 };
 
-export const ApplicationTable: React.FC<ApplicationTableProps> = ({ 
-  applications, 
-  onUpdateStatus 
+export const ApplicationTable: React.FC<ApplicationTableProps> = ({
+  applications,
+  onUpdateStatus,
 }) => {
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const handleViewDocument = (application: Application) => {
@@ -45,9 +62,9 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   };
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved':
+      case "approved":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -56,12 +73,12 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-yellow-100 text-yellow-800";
     }
   };
 
@@ -69,9 +86,12 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
     return (
       <div className="bg-white rounded-xl shadow-md p-8 text-center">
         <Eye className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Applications Found</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          No Applications Found
+        </h3>
         <p className="text-gray-600">
-          No applications match your current filters. Try adjusting your search criteria.
+          No applications match your current filters. Try adjusting your search
+          criteria.
         </p>
       </div>
     );
@@ -80,10 +100,14 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Applications Management</h2>
-        <p className="text-sm text-gray-600">Review and manage student concession applications</p>
+        <h2 className="text-lg font-semibold text-gray-900">
+          Applications Management
+        </h2>
+        <p className="text-sm text-gray-600">
+          Review and manage student concession applications
+        </p>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -103,6 +127,10 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Applied Date
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Expiry
+              </th>
+
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
@@ -154,7 +182,9 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
                   <div className="flex flex-col items-center space-y-1">
-                    {(application.id_card_url || application.aadhar_url || application.fee_receipt_url) ? (
+                    {application.id_card_url ||
+                    application.aadhar_url ||
+                    application.fee_receipt_url ? (
                       <button
                         onClick={() => handleViewDocument(application)}
                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
@@ -170,15 +200,42 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                     )}
                     {/* Document count indicator */}
                     <div className="flex space-x-1">
-                      <span className={`w-2 h-2 rounded-full ${
-                        application.id_card_url ? 'bg-green-500' : 'bg-gray-300'
-                      }`} title={application.id_card_url ? 'ID Card uploaded' : 'ID Card missing'}></span>
-                      <span className={`w-2 h-2 rounded-full ${
-                        application.aadhar_url ? 'bg-green-500' : 'bg-gray-300'
-                      }`} title={application.aadhar_url ? 'Aadhar uploaded' : 'Aadhar missing'}></span>
-                      <span className={`w-2 h-2 rounded-full ${
-                        application.fee_receipt_url ? 'bg-green-500' : 'bg-gray-300'
-                      }`} title={application.fee_receipt_url ? 'Fee Receipt uploaded' : 'Fee Receipt missing'}></span>
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          application.id_card_url
+                            ? "bg-green-500"
+                            : "bg-gray-300"
+                        }`}
+                        title={
+                          application.id_card_url
+                            ? "ID Card uploaded"
+                            : "ID Card missing"
+                        }
+                      ></span>
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          application.aadhar_url
+                            ? "bg-green-500"
+                            : "bg-gray-300"
+                        }`}
+                        title={
+                          application.aadhar_url
+                            ? "Aadhar uploaded"
+                            : "Aadhar missing"
+                        }
+                      ></span>
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          application.fee_receipt_url
+                            ? "bg-green-500"
+                            : "bg-gray-300"
+                        }`}
+                        title={
+                          application.fee_receipt_url
+                            ? "Fee Receipt uploaded"
+                            : "Fee Receipt missing"
+                        }
+                      ></span>
                     </div>
                   </div>
                 </td>
@@ -190,43 +247,67 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                     </div>
                   </div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {application.valid_until
+                    ? new Date(application.valid_until).toLocaleDateString()
+                    : "N/A"}
+                  {application.is_expired && (
+                    <span className="ml-2 text-xs text-red-600 font-semibold">
+                      (Expired)
+                    </span>
+                  )}
+                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(application.status)}
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
-                      {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        application.status
+                      )}`}
+                    >
+                      {application.status.charAt(0).toUpperCase() +
+                        application.status.slice(1)}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex flex-col space-y-1">
                     {/* View Document Button (visible if any document exists) */}
-                    {(application.id_card_url || application.aadhar_url || application.fee_receipt_url) && (
+                    {(application.id_card_url ||
+                      application.aadhar_url ||
+                      application.fee_receipt_url) && (
                       <button
                         onClick={() => handleViewDocument(application)}
                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors"
                       >
                         <Eye className="h-3 w-3 mr-1" />
-                        View Docs ({[
+                        View Docs (
+                        {[
                           application.id_card_url ? 1 : 0,
                           application.aadhar_url ? 1 : 0,
-                          application.fee_receipt_url ? 1 : 0
-                        ].reduce((a, b) => a + b, 0)}/3)
+                          application.fee_receipt_url ? 1 : 0,
+                        ].reduce((a, b) => a + b, 0)}
+                        /3)
                       </button>
                     )}
-                    
+
                     {/* Quick Actions */}
-                    {application.status === 'pending' && (
+                    {application.status === "pending" && (
                       <div className="flex space-x-1">
                         <button
-                          onClick={() => onUpdateStatus(application.id, 'approved')}
+                          onClick={() =>
+                            onUpdateStatus(application.id, "approved")
+                          }
                           className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Approve
                         </button>
                         <button
-                          onClick={() => onUpdateStatus(application.id, 'rejected')}
+                          onClick={() =>
+                            onUpdateStatus(application.id, "rejected")
+                          }
                           className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
                         >
                           <XCircle className="h-3 w-3 mr-1" />
@@ -234,11 +315,27 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                         </button>
                       </div>
                     )}
-                    
-                    {application.status !== 'pending' && (
+
+                    {application.status !== "pending" && (
                       <span className="text-gray-500 text-xs">
-                        {application.status === 'approved' ? 'Approved' : 'Rejected'}
+                        {application.status === "approved"
+                          ? "Approved"
+                          : "Rejected"}
                       </span>
+                    )}
+                    {/* 🔹 New Extend Button for Approved Apps */}
+                    {application.status === "approved" && (
+                      <button
+                        onClick={() => {
+                          const event = new CustomEvent("extend-pass", {
+                            detail: { application },
+                          });
+                          window.dispatchEvent(event);
+                        }}
+                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors"
+                      >
+                        Extend
+                      </button>
                     )}
                   </div>
                 </td>
@@ -247,7 +344,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
           </tbody>
         </table>
       </div>
-      
+
       {/* Document Viewer Modal */}
       <DocumentViewer
         application={selectedApplication}
